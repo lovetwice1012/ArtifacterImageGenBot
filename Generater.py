@@ -6,6 +6,8 @@ import os
 import itertools
 from collections import Counter
 import base64
+import discord
+import enkanetwork
 
 from PIL import ImageFile 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -239,7 +241,7 @@ def generation(data):
             
     
     
-    Shadow = Image.open(f'{cwd}/Assets/shadow.png').resize(Base.size)
+    Shadow = Image.open(f'{cwd}/Assets/Shadow.png').resize(Base.size)
     CharacterImage = CharacterImage.crop((289,0,1728,1024))
     CharacterImage = CharacterImage.resize((int(CharacterImage.width*0.75), int(CharacterImage.height*0.75)))
     
@@ -554,16 +556,7 @@ def generation(data):
             D.text((1536,263),n,fill=(0,255,0),font=config_font(23))
             D.rounded_rectangle((1818,263,1862,288),1,'black')
             D.text((1831,265),str(q),font=config_font(19))
-            
-    premium = read_json(f'{cwd}/Assets/premium.json')
-    user_badge = premium.get(f'{data.get("uid")}')
-    if user_badge:
-        for i,b in enumerate(user_badge):
-            badge = Image.open(f'{cwd}/badge/{b}.png').convert('RGBA').resize((38,38))
-            badge_mask = badge.copy()
-            
-            Base.paste(badge,(1843-i*45,533),mask=badge_mask)
-            
+                        
     Base.show()
     Base.save(f'{cwd}/Tests/Image.png')
             
@@ -588,4 +581,50 @@ def pil_to_base64(img, format="jpeg"):
 
 
 
-generation(read_json('data.json'))
+#generation(read_json('data.json'))
+
+#init discord bot
+
+
+client = discord.Client(intents=discord.Intents.all())
+tree = discord.app_commands.CommandTree(client)
+from enkanetwork import EnkaNetworkAPI
+enkaClient = EnkaNetworkAPI()
+
+@tree.command(
+    name="build",#コマンド名
+    description="ビルドカードを生成します"#コマンドの説明
+)
+
+@client.event
+async def on_ready():
+    print('-----Logged in info-----')
+    print(client.user.name)
+    print(client.user.id)
+    print('------------------------')
+    await tree.sync()
+
+class getUID(discord.ui.Modal, title='Feedback'):
+    uid = discord.ui.TextInput(
+        label='UID',
+        placeholder='ここにUIDを入力',
+    )
+
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'Thanks for your feedback, {self.name.value}!', ephemeral=True)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        await interaction.response.send_message('Oops! Something went wrong.', ephemeral=True)
+        traceback.print_exception(type(error), error, error.__traceback__)
+
+
+@client.event
+async def on_app_command_completion(interaction, command):
+    if interaction.author.bot:
+        return
+    await interaction.response.send_modal(getUID())
+
+
+
+client.run("")
